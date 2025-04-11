@@ -2,9 +2,11 @@
 using Microsoft.VisualStudio.Shell;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 
 namespace GherkinSync
 {
+    [ComVisible(true)]
     public class OptionPageGrid : DialogPage
     {
         [Category("Azure DevOps")]

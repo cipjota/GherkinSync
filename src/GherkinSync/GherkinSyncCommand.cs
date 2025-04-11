@@ -117,8 +117,17 @@ namespace GherkinSync
                 var gherkinDocument = parser.Parse(currentFilePath);
                 var feature = gherkinDocument.Feature;
 
-                var testCaseReferenceTag = feature.Tags.Where(t => Regex.Match(t.Name, "@" + _options. + "\\((.*)\\)").Success).FirstOrDefault();
+                var testPlanReferenceTag = feature.Tags.Where(t => Regex.Match(t.Name, "@" + _options.TestPlanReferenceIdTag + "\\((.*)\\)").Success).FirstOrDefault();
+                if (testPlanReferenceTag == null)
+                {
+                    //Set or create test plan
+                }
 
+                var testSuiteReferenceTag = feature.Tags.Where(t => Regex.Match(t.Name, "@" + _options.TestSuiteReferenceIdTag + "\\((.*)\\)").Success).FirstOrDefault();
+                if (testSuiteReferenceTag == null)
+                {
+                    //Set or create test suite
+                }
 
                 var featureBackground = feature.Children.Where(c => c.GetType() == typeof(Background)).Cast<Background>().FirstOrDefault();
                 var featureScenarios = feature.Children.Where(c => c.GetType() == typeof(Scenario)).Cast<Scenario>();
