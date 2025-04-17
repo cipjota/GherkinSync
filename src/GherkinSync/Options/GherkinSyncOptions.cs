@@ -1,13 +1,10 @@
 ﻿using GherkinSync.Models;
-using Microsoft.VisualStudio.Shell;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Runtime.InteropServices;
 
-namespace GherkinSync
+namespace GherkinSync.Options
 {
-    [ComVisible(true)]
-    public class OptionPageGrid : DialogPage
+    public class GherkinSyncOptions : BaseOptionModel<GherkinSyncOptions>
     {
         [Category("Azure DevOps")]
         [DisplayName("AzureDevops instance URL")]
@@ -30,7 +27,7 @@ namespace GherkinSync
         [DisplayName("Custom fields")]
         [Description(
             "Custom fields added to the Test Case template.")]
-        public List<CustomField> CustomFields { get; set; } = new List<CustomField>();
+        public List<CustomField> CustomFields { get; set; } = [];
 
         [Category("Test Cases")]
         [DisplayName("Description template")]

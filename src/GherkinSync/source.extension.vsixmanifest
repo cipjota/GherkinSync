@@ -1,21 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="GherkinSync.730f0157-a888-4c16-b702-8443fa3ab46a" Version="1.0" Language="en-US" Publisher="Cipriano Oliveira" />
+        <Identity Id="GherkinSync.cf821808-8c80-44bf-b6c3-b34bd94ec5f8" Version="1.0" Language="en-US" Publisher="Cipriano Oliveira" />
         <DisplayName>GherkinSync</DisplayName>
-        <Description xml:space="preserve">GherkinSync - A plugin to syncronize Gherkin files with Azure DevOps</Description>
+        <Description xml:space="preserve">Empty VSIX Project.</Description>
         <Icon>Resources\Logo.png</Icon>
+        <PreviewImage>Resources\Logo.png</PreviewImage>
     </Metadata>
     <Installation>
         <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.0, 18.0)">
             <ProductArchitecture>amd64</ProductArchitecture>
         </InstallationTarget>
     </Installation>
-    <Dependencies>
-        <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="[4.5,)" />
-    </Dependencies>
     <Prerequisites>
-        <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.0,18.0)" DisplayName="Visual Studio core editor" />
+        <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[17.0,)" DisplayName="Visual Studio core editor" />
     </Prerequisites>
     <Assets>
         <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />

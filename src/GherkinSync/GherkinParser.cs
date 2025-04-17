@@ -1,6 +1,6 @@
 ﻿using Gherkin.Ast;
 using GherkinSync.Models;
-using System;
+using GherkinSync.Options;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,16 +8,9 @@ using System.Text.RegularExpressions;
 
 namespace GherkinSync
 {
-    internal class GherkinParser
+    internal static class GherkinParser
     {
-        private GherkinSyncPackage _options;
-
-        internal GherkinParser(GherkinSyncPackage options)
-        {
-            _options = options;
-        }
-
-        internal List<TestCase> ConvertToTestCases(IEnumerable<Scenario> scenarios, List<string> backgroundSteps, string featureName, string featureDescription, string ruleName = "", string ruleDescription = "")
+        internal static List<TestCase> ConvertToTestCases(IEnumerable<Scenario> scenarios, List<string> backgroundSteps, string featureName, string featureDescription, string ruleName = "", string ruleDescription = "")
         {
             var testCasesList = new List<TestCase>();
             foreach (var scenario in scenarios)
@@ -28,7 +21,7 @@ namespace GherkinSync
                 var testCaseReferenceTagLine = 0;
                 var testCaseReferenceExists = false;
 
-                var testCaseReferenceTag = scenario.Tags.Where(t => Regex.Match(t.Name, "@" + _options.TestCaseReferenceIdTag + "\\((.*)\\)").Success).FirstOrDefault();
+                var testCaseReferenceTag = scenario.Tags.Where(t => Regex.Match(t.Name, "@" + GherkinSyncOptions.Instance.TestCaseReferenceIdTag + "\\((.*)\\)").Success).FirstOrDefault();
                 if (testCaseReferenceTag != null)
                 {
                     testCaseReferenceExists = true;
@@ -89,7 +82,7 @@ namespace GherkinSync
             return testCasesList;
         }
 
-        internal List<string> StepsToList(IEnumerable<Step> steps)
+        internal static List<string> StepsToList(IEnumerable<Step> steps)
         {
             return steps.Select(step =>
                 step.Keyword +
@@ -110,7 +103,7 @@ namespace GherkinSync
             return dict;
         }
 
-        internal string ConvertGherkinDataTableToAsciiTable(DataTable gherkinDataTable)
+        internal static string ConvertGherkinDataTableToAsciiTable(DataTable gherkinDataTable)
         {
             if (gherkinDataTable == null || !gherkinDataTable.Rows.Any())
             {
