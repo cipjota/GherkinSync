@@ -3,6 +3,7 @@
                         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                        xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
                         xmlns:platform="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
                         xmlns:toolkit="clr-namespace:Community.VisualStudio.Toolkit;assembly=Community.VisualStudio.Toolkit"
                         toolkit:Themes.UseVsTheme="True"
@@ -12,7 +13,15 @@
                         Height="600"
                         d:DesignHeight="600"
                         d:DesignWidth="800" 
+                        Name="SyncOptionsDialogWindow"
                         DataContext="{Binding Mode=OneWay, RelativeSource={RelativeSource Self}}">
+
+    <b:Interaction.Triggers>
+        <b:EventTrigger EventName="Loaded">
+            <b:InvokeCommandAction Command="{Binding SyncOptions. LoadedCommand}"/>
+        </b:EventTrigger>
+    </b:Interaction.Triggers>
+
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="25*" />
@@ -31,10 +40,10 @@
         <Label Content="Project" Grid.Row="0" Grid.Column="0" Margin="5"/>
         <TextBox Name="ProjectName" Grid.ColumnSpan="2" Grid.Row="0" Grid.Column="1" Margin="5" Text="{Binding Path=SyncOptions.ProjectName, Mode=TwoWay}" />
         <Label Content="Test plan" Grid.Row="1" Grid.Column="0" Margin="5"/>
-        <TextBox Name="TestPlanId" Grid.Row="1" Grid.Column="1" Margin="5" Text="{Binding Path=SyncOptions.TestPlanId, Mode=TwoWay}"/>
+        <TextBox Name="TestPlanId" Grid.Row="1" Grid.Column="1" Margin="5" Text="{Binding Path=SyncOptions.TestPlanId, Mode=TwoWay}" IsEnabled="{Binding Path=SyncOptions.IsTestPlanIdEnabled, Mode=OneWay}" />
         <TextBox Name="TestPlanName" Grid.Row="1" Grid.Column="2" Margin="0 5 5 5" Text="{Binding Path=SyncOptions.TestPlanName, Mode=TwoWay}"/>
         <Label Content="Test suite" Grid.Row="2" Grid.Column="0" Margin="5"/>
-        <TextBox Name="TestSuiteId" Grid.Row="2" Grid.Column="1" Margin="5" Text="{Binding Path=SyncOptions.TestSuiteId, Mode=TwoWay}"/>
+        <TextBox Name="TestSuiteId" Grid.Row="2" Grid.Column="1" Margin="5" Text="{Binding Path=SyncOptions.TestSuiteId, Mode=TwoWay}" IsEnabled="{Binding Path=SyncOptions.IsTestSuiteIdEnabled, Mode=OneWay}" />
         <TextBox Name="TestSuiteName" Grid.Row="2" Grid.Column="2" Margin="0 5 5 5" Text="{Binding Path=SyncOptions.TestSuiteName, Mode=TwoWay}" />
 
         <Label Content="Description template" Grid.Row="3" Grid.Column="0" Margin="5"/>
@@ -48,8 +57,20 @@
         </DataGrid>
 
         <StackPanel Orientation="Horizontal" Grid.ColumnSpan="2" Grid.Row="5" Grid.Column="1" HorizontalAlignment="Right">
-            <Button Name="OkButton"  Content="Ok" Width="100" Margin="5" Click="OkButton_Click"/>
-            <Button Name="CancelButton" Content="Cancel" Width="100" Margin="5" Click="CancelButton_Click" />
+            <Button Name="OkButton" 
+                    Content="Ok" 
+                    Width="100" 
+                    Margin="5" 
+                    Command="{Binding SyncOptions.OkCommand}"
+                    CommandParameter="{Binding ElementName=SyncOptionsDialogWindow, Mode=OneWay}"
+                    />
+            <Button Name="CancelButton" 
+                    Content="Cancel" 
+                    Width="100" 
+                    Margin="5" 
+                    Command="{Binding SyncOptions.CancelCommand}"
+                    CommandParameter="{Binding ElementName=SyncOptionsDialogWindow, Mode=OneWay}"
+                    />
         </StackPanel>
     </Grid>
 </platform:DialogWindow>

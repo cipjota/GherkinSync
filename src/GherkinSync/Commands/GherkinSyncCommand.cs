@@ -1,7 +1,6 @@
 ﻿using EnvDTE;
 using Gherkin;
 using Gherkin.Ast;
-using GherkinSync.Models;
 using GherkinSync.Options;
 using GherkinSync.ToolWindows;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi;
@@ -14,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using WorkItem = Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models.WorkItem;
 
 namespace GherkinSync
 {
@@ -40,13 +40,15 @@ namespace GherkinSync
                 var testPlanReferenceTag = feature.Tags.Where(t => Regex.Match(t.Name, "@" + GherkinSyncOptions.Instance.TestPlanReferenceIdTag + "\\((.*)\\)").Success).FirstOrDefault();
                 if (testPlanReferenceTag != null)
                 {
-                    syncOptionsDialog.SyncOptions.TestPlanId = Regex.Matches(testPlanReferenceTag.Name, @"/\\(([^)]+)\\)/")[1].Value;
+                    var testPlanId = testPlanReferenceTag.Name.Substring(testPlanReferenceTag.Name.IndexOf("(") + 1, testPlanReferenceTag.Name.IndexOf(")") - 1 - testPlanReferenceTag.Name.IndexOf("("));
+                    syncOptionsDialog.SyncOptions.TestPlanId = int.Parse(testPlanId);
                 }
 
                 var testSuiteReferenceTag = feature.Tags.Where(t => Regex.Match(t.Name, "@" + GherkinSyncOptions.Instance.TestSuiteReferenceIdTag + "\\((.*)\\)").Success).FirstOrDefault();
                 if (testSuiteReferenceTag != null)
                 {
-                    syncOptionsDialog.SyncOptions.TestSuiteId = Regex.Matches(testSuiteReferenceTag.Name, @"/\\(([^)]+)\\)/")[1].Value;
+                    var testSuiteId = testSuiteReferenceTag.Name.Substring(testSuiteReferenceTag.Name.IndexOf("(") + 1, testSuiteReferenceTag.Name.IndexOf(")") - 1 - testSuiteReferenceTag.Name.IndexOf("("));
+                    syncOptionsDialog.SyncOptions.TestSuiteId = int.Parse(testSuiteId);
                 }
 
                 if (syncOptionsDialog.ShowDialog().Value == true)
@@ -97,75 +99,77 @@ namespace GherkinSync
             }
         }
 
-        public async Task<int> CreateOrUpdateTestCaseAsync(TestCase testCase, SyncOptionsDialogViewModel syncOptions)
+        public async Task AddTestCaseToSuite(string ProjectId, int TestPlanId, int TestSuiteId)
         {
-            using (var connection = new VssConnection(new Uri(GherkinSyncOptions.Instance.AzureDevopsBaseUrl), new VssBasicCredential("", GherkinSyncOptions.Instance.PatToken)))
+
+        }
+
+        public async Task<int> CreateOrUpdateTestCaseAsync(Models.TestCase testCase, SyncOptionsDialogViewModel syncOptions)
+        {
+            WorkItem workItem = null;
+
+            using var connection = new VssConnection(new Uri(GherkinSyncOptions.Instance.AzureDevopsBaseUrl), new VssBasicCredential("", GherkinSyncOptions.Instance.PatToken));
+
+            try
             {
-                try
+                var workItemClient = connection.GetClient<WorkItemTrackingHttpClient>();
+
+                if (testCase.TestCaseId > 0)
                 {
-                    var workItemClient = connection.GetClient<WorkItemTrackingHttpClient>();
+                    workItem = await workItemClient.GetWorkItemAsync(testCase.TestCaseId, null, null, WorkItemExpand.None);
 
-                    WorkItem workItem = null;
-
-                    if (testCase.TestCaseId > 0)
-                    {
-                        workItem = await workItemClient.GetWorkItemAsync(testCase.TestCaseId, null, null, WorkItemExpand.None);
-
-                        if (workItem == null)
-                        {
-                            workItem = new WorkItem();
-                        }
-                    }
-                    else
-                    {
-                        workItem = new WorkItem();
-                    }
-
-                    workItem.Fields.AddOrUpdate("Title", testCase.TestCaseName, (key, value) => { return value; });
-
-                    workItem.Fields.AddOrUpdate("Description", syncOptions.DescriptionTemplate
-                        .Replace("[FeatureName]", testCase.FeatureName)
-                        .Replace("[FeatureDescription]", testCase.FeatureDescription)
-                        .Replace("[TestCaseName]", testCase.TestCaseName)
-                        .Replace("[TestCaseDescription]", testCase.TestCaseDescription)
-                        .Replace("[RuleName]", testCase.RuleName)
-                        .Replace("[RuleDescription]", testCase.RuleDescription)
-                        .Replace("[BackgroundSteps]", string.Join(Environment.NewLine, testCase.BackgroundSteps)),
-                        (key, value) => { return value; });
-
-                    foreach (var customFiled in syncOptions.CustomFields)
-                    {
-                        workItem.Fields.AddOrUpdate(customFiled.FieldName, customFiled.DefaultValue, (key, value) => { return value; });
-                    }
-
-                    var patchDocument = new JsonPatchDocument();
-
-                    foreach (var key in workItem.Fields.Keys)
-                    {
-                        patchDocument.Add(new JsonPatchOperation()
-                        {
-                            Operation = Operation.Add,
-                            Path = "/fields/" + key,
-                            Value = workItem.Fields[key]
-                        });
-                    }
-
-                    if (testCase.TestCaseId > 0)
-                    {
-                        workItem = await workItemClient.UpdateWorkItemAsync(patchDocument, testCase.TestCaseId);
-                    }
-                    else
-                    {
-                        workItem = await workItemClient.CreateWorkItemAsync(patchDocument, syncOptions.ProjectName, "Test Case");
-                    }
+                    workItem ??= new WorkItem();
                 }
-                catch (Exception ex)
+                else
                 {
-                    var msg = ex.Message;
+                    workItem = new WorkItem();
+                }
+
+                workItem.Fields.AddOrUpdate("Title", testCase.TestCaseName, (key, value) => { return value; });
+
+                workItem.Fields.AddOrUpdate("Description", syncOptions.DescriptionTemplate
+                    .Replace("[FeatureName]", testCase.FeatureName)
+                    .Replace("[FeatureDescription]", testCase.FeatureDescription)
+                    .Replace("[TestCaseName]", testCase.TestCaseName)
+                    .Replace("[TestCaseDescription]", testCase.TestCaseDescription)
+                    .Replace("[RuleName]", testCase.RuleName)
+                    .Replace("[RuleDescription]", testCase.RuleDescription)
+                    .Replace("[BackgroundSteps]", string.Join(Environment.NewLine, testCase.BackgroundSteps)),
+                    (key, value) => { return value; });
+
+                foreach (var customFiled in syncOptions.CustomFields)
+                {
+                    workItem.Fields.AddOrUpdate(customFiled.FieldName, customFiled.DefaultValue, (key, value) => { return value; });
+                }
+
+                var patchDocument = new JsonPatchDocument();
+
+                foreach (var key in workItem.Fields.Keys)
+                {
+                    patchDocument.Add(new JsonPatchOperation()
+                    {
+                        Operation = Operation.Add,
+                        Path = "/fields/" + key,
+                        Value = workItem.Fields[key]
+                    });
+                }
+
+                if (testCase.TestCaseId > 0)
+                {
+                    workItem = await workItemClient.UpdateWorkItemAsync(patchDocument, testCase.TestCaseId);
+                }
+                else
+                {
+                    workItem = await workItemClient.CreateWorkItemAsync(patchDocument, syncOptions.ProjectName, "Test Case");
                 }
             }
+            catch (Exception ex)
+            {
+                var msg = ex.Message;
+            }
 
-            return testCase.TestCaseId;
+
+            return workItem.Id.Value;
         }
     }
 }
