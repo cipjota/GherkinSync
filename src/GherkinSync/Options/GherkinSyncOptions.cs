@@ -58,5 +58,11 @@ namespace GherkinSync.Options
         [Description(
             "ID of the test case")]
         public string TestCaseReferenceIdTag { get; set; } = "TestCaseReference";
+
+        [Category("Test Plan Management")]
+        [DisplayName("Remove test cases from suite")]
+        [Description(
+            "Removes test cases from test suite that do not exist on the feature file")]
+        public bool RemoveTestCasesFromSuite { get; set; } = false;
     }
 }

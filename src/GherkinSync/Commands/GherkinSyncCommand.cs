@@ -6,9 +6,11 @@ using GherkinSync.ToolWindows;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
 using Microsoft.VisualStudio.Services.Common;
+using Microsoft.VisualStudio.Services.TestManagement.TestPlanning.WebApi;
 using Microsoft.VisualStudio.Services.WebApi;
 using Microsoft.VisualStudio.Services.WebApi.Patch;
 using Microsoft.VisualStudio.Services.WebApi.Patch.Json;
+using Microsoft.VisualStudio.Shell.Interop;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -32,6 +34,9 @@ namespace GherkinSync
                 var syncOptionsDialog = new SyncOptionsDialog();
                 syncOptionsDialog.SyncOptions.ProjectName = GherkinSyncOptions.Instance.ProjectName;
                 syncOptionsDialog.SyncOptions.DescriptionTemplate = GherkinSyncOptions.Instance.DescriptionTemplate;
+                syncOptionsDialog.SyncOptions.CustomFields = GherkinSyncOptions.Instance.CustomFields;
+                syncOptionsDialog.SyncOptions.RemoveCasesFromSuite = GherkinSyncOptions.Instance.RemoveTestCasesFromSuite;
+                syncOptionsDialog.SyncOptions.BackgroundAsSteps = GherkinSyncOptions.Instance.BackgroundAsSteps;
 
                 var parser = new Parser();
                 var gherkinDocument = parser.Parse(currentFilePath);
@@ -87,21 +92,64 @@ namespace GherkinSync
                         testCasesList.AddRange(GherkinParser.ConvertToTestCases(featureScenarios, featureBackgroundSteps, feature.Name, feature.Description, featureRule.Name, featureRule.Description));
                     }
 
-                    foreach (var testCase in testCasesList)
+                    await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                    var fac = (IVsThreadedWaitDialogFactory)await VS.Services.GetThreadedWaitDialogAsync();
+                    IVsThreadedWaitDialog4 twd = fac.CreateInstance();
+
+                    twd.StartWaitDialog("GherkinSync", "Synchronizing test cases", "", null, "", 1, true, true);
+
+                    using var connection = new VssConnection(new Uri(GherkinSyncOptions.Instance.AzureDevopsBaseUrl), new VssBasicCredential("", GherkinSyncOptions.Instance.PatToken));
+                    var testManagementClient = connection.GetClient<TestPlanHttpClient>();
+                    var testCasesInSuite = await testManagementClient.GetTestCaseListAsync(syncOptionsDialog.SyncOptions.ProjectName, syncOptionsDialog.SyncOptions.TestPlanId, syncOptionsDialog.SyncOptions.TestSuiteId);
+
+                    for (int i = 0; i < testCasesList.Count; i++)
                     {
-                        testCase.TestCaseId = await CreateOrUpdateTestCaseAsync(testCase, syncOptionsDialog.SyncOptions);
+                        twd.UpdateProgress("", "Synchronizing " + testCasesList[i].TestCaseName, "Test Case " + i + 1 + " of " + testCasesList.Count, i + 1, testCasesList.Count + 2, true, out _);
+
+                        testCasesList[i].TestCaseId = await CreateOrUpdateTestCaseAsync(testCasesList[i], syncOptionsDialog.SyncOptions);
+
+                        if (!testCasesInSuite.Where(t => t.workItem.Id == testCasesList[i].TestCaseId).Any())
+                        {
+                            var suiteTestCaseCreateUpdateParameters = new List<SuiteTestCaseCreateUpdateParameters>
+                            {
+                                new() { workItem = new Microsoft.VisualStudio.Services.TestManagement.TestPlanning.WebApi.WorkItem() { Id = testCasesList[i].TestCaseId } }
+                            };
+
+                            _ = await testManagementClient.AddTestCasesToSuiteAsync(suiteTestCaseCreateUpdateParameters, syncOptionsDialog.SyncOptions.ProjectName, syncOptionsDialog.SyncOptions.TestPlanId, syncOptionsDialog.SyncOptions.TestSuiteId);
+                        }
                     }
+
+                    if (syncOptionsDialog.SyncOptions.RemoveCasesFromSuite)
+                    {
+                        twd.UpdateProgress("", "Removing test cases from suite", "Removing test cases from suite", testCasesList.Count + 1, testCasesList.Count + 2, true, out _);
+
+                        var testCasesToRemove = string.Join(",", testCasesInSuite.Select(tc => tc.workItem.Id)
+                                           .Except(testCasesList.Select(tc => tc.TestCaseId))
+                                           .ToList());
+
+                        await testManagementClient.RemoveTestCasesListFromSuiteAsync(syncOptionsDialog.SyncOptions.ProjectName, syncOptionsDialog.SyncOptions.TestPlanId, syncOptionsDialog.SyncOptions.TestSuiteId, testCasesToRemove);
+                    }
+
+                    twd.UpdateProgress("", "Updating feature file", "Updating feature file", testCasesList.Count + 2, testCasesList.Count + 2, true, out _);
+
+                    // Update the feature files
+
+                    twd.EndWaitDialog();
+                    (twd as IDisposable).Dispose();
+
+                    GherkinSyncOptions.Instance.ProjectName = syncOptionsDialog.SyncOptions.ProjectName;
+                    GherkinSyncOptions.Instance.DescriptionTemplate = syncOptionsDialog.SyncOptions.DescriptionTemplate;
+                    GherkinSyncOptions.Instance.CustomFields = syncOptionsDialog.SyncOptions.CustomFields;
+                    GherkinSyncOptions.Instance.RemoveTestCasesFromSuite = syncOptionsDialog.SyncOptions.RemoveCasesFromSuite;
+                    GherkinSyncOptions.Instance.BackgroundAsSteps = syncOptionsDialog.SyncOptions.BackgroundAsSteps;
+
+                    await GherkinSyncOptions.Instance.SaveAsync();
                 }
                 else
                 {
                     await VS.MessageBox.ShowAsync("GherkinSync", "Synchronization cancelled.", Microsoft.VisualStudio.Shell.Interop.OLEMSGICON.OLEMSGICON_INFO, Microsoft.VisualStudio.Shell.Interop.OLEMSGBUTTON.OLEMSGBUTTON_OK);
                 }
             }
-        }
-
-        public async Task AddTestCaseToSuite(string ProjectId, int TestPlanId, int TestSuiteId)
-        {
-
         }
 
         public async Task<int> CreateOrUpdateTestCaseAsync(Models.TestCase testCase, SyncOptionsDialogViewModel syncOptions)
@@ -125,6 +173,8 @@ namespace GherkinSync
                     workItem = new WorkItem();
                 }
 
+                // Add or edit steps
+
                 workItem.Fields.AddOrUpdate("Title", testCase.TestCaseName, (key, value) => { return value; });
 
                 workItem.Fields.AddOrUpdate("Description", syncOptions.DescriptionTemplate
@@ -134,7 +184,7 @@ namespace GherkinSync
                     .Replace("[TestCaseDescription]", testCase.TestCaseDescription)
                     .Replace("[RuleName]", testCase.RuleName)
                     .Replace("[RuleDescription]", testCase.RuleDescription)
-                    .Replace("[BackgroundSteps]", string.Join(Environment.NewLine, testCase.BackgroundSteps)),
+                    .Replace("[BackgroundSteps]", "<ul>" + string.Join(Environment.NewLine, testCase.BackgroundSteps.Select(s => "<li>" + s + "</li>")) + "</ul>"),
                     (key, value) => { return value; });
 
                 foreach (var customFiled in syncOptions.CustomFields)
