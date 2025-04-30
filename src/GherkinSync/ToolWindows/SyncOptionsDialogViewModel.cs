@@ -117,6 +117,34 @@ namespace GherkinSync.ToolWindows
             }
         }
 
+        private bool _removeCasesFromSuite = false;
+        public bool RemoveCasesFromSuite
+        {
+            get => _removeCasesFromSuite;
+            set
+            {
+                if (_removeCasesFromSuite != value)
+                {
+                    _removeCasesFromSuite = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(RemoveCasesFromSuite)));
+                }
+            }
+        }
+
+        private bool _backgroundAsSteps = false;
+        public bool BackgroundAsSteps
+        {
+            get => _backgroundAsSteps;
+            set
+            {
+                if (_backgroundAsSteps != value)
+                {
+                    _backgroundAsSteps = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(BackgroundAsSteps)));
+                }
+            }
+        }
+
         public bool IsTestPlanIdEnabled { get { return TestPlanId > 0; } }
 
         public bool IsTestSuiteIdEnabled { get { return TestSuiteId > 0; } }
@@ -132,8 +160,29 @@ namespace GherkinSync.ToolWindows
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private void OnOkCommandExecute(object parameter)
+        private async void OnOkCommandExecute(object parameter)
         {
+            try
+            {
+                await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+                var fac = (IVsThreadedWaitDialogFactory)await VS.Services.GetThreadedWaitDialogAsync();
+                IVsThreadedWaitDialog4 twd = fac.CreateInstance();
+
+                twd.StartWaitDialog("GherkinSync", "Updating data...", "", null, "", 1, true, true);
+                twd.UpdateProgress("", "Creating or updating test plan", "Creating or updating test plan", 1, 2, true, out _);
+                await CreateOrUpdateTestPlanAsync();
+                twd.UpdateProgress("", "Creating or updating test suite", "Creating or updating test suite", 2, 2, true, out _);
+                await CreateOrUpdateTestSuiteAsync();
+
+                twd.EndWaitDialog();
+                (twd as IDisposable).Dispose();
+
+            }
+            catch (Exception ex)
+            {
+                await VS.MessageBox.ShowAsync("GherkinSync: Error", ex.Message, Microsoft.VisualStudio.Shell.Interop.OLEMSGICON.OLEMSGICON_CRITICAL, Microsoft.VisualStudio.Shell.Interop.OLEMSGBUTTON.OLEMSGBUTTON_OK);
+            }
+
             Window wnd = parameter as Window;
             wnd.DialogResult = true;
             wnd.Close();
@@ -219,12 +268,58 @@ namespace GherkinSync.ToolWindows
             }
         }
 
-        private async Task CreateOrUpdateTestPlan()
+        private async Task CreateOrUpdateTestPlanAsync()
         {
             using var connection = new VssConnection(new Uri(GherkinSyncOptions.Instance.AzureDevopsBaseUrl), new VssBasicCredential("", GherkinSyncOptions.Instance.PatToken));
+            var testManagementClient = connection.GetClient<TestPlanHttpClient>();
 
+            if (TestPlanId > 0)
+            {
+                var testPlanUpdateParams = new TestPlanUpdateParams
+                {
+                    Name = TestPlanName
+                };
+
+                await testManagementClient.UpdateTestPlanAsync(testPlanUpdateParams, ProjectName, TestPlanId);
+            }
+            else
+            {
+                var testPlanCreateParams = new TestPlanCreateParams()
+                {
+                    Name = TestPlanName
+                };
+
+                var testPlan = await testManagementClient.CreateTestPlanAsync(testPlanCreateParams, ProjectName);
+                TestPlanId = testPlan.Id;
+            }
         }
 
+        private async Task CreateOrUpdateTestSuiteAsync()
+        {
+            using var connection = new VssConnection(new Uri(GherkinSyncOptions.Instance.AzureDevopsBaseUrl), new VssBasicCredential("", GherkinSyncOptions.Instance.PatToken));
+            var testManagementClient = connection.GetClient<TestPlanHttpClient>();
 
+            if (TestSuiteId > 0)
+            {
+                var testSuiteUpdateParams = new TestSuiteUpdateParams
+                {
+                    Name = TestSuiteName
+                };
+
+                await testManagementClient.UpdateTestSuiteAsync(testSuiteUpdateParams, ProjectName, TestPlanId, TestSuiteId);
+            }
+            else
+            {
+                var testSuiteCreateParams = new TestSuiteCreateParams()
+                {
+                    Name = TestSuiteName,
+                    SuiteType = TestSuiteType.StaticTestSuite,
+                    ParentSuite = new TestSuiteReference() { Id = TestPlanId + 1 }
+                };
+
+                var testSuite = await testManagementClient.CreateTestSuiteAsync(testSuiteCreateParams, ProjectName, TestPlanId);
+                TestSuiteId = testSuite.Id;
+            }
+        }
     }
 }

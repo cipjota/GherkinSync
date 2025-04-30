@@ -35,6 +35,8 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <Label Content="Project" Grid.Row="0" Grid.Column="0" Margin="5"/>
@@ -47,7 +49,8 @@
         <TextBox Name="TestSuiteName" Grid.Row="2" Grid.Column="2" Margin="0 5 5 5" Text="{Binding Path=SyncOptions.TestSuiteName, Mode=TwoWay}" />
 
         <Label Content="Description template" Grid.Row="3" Grid.Column="0" Margin="5"/>
-        <TextBox Name="DescriptionTemplate" Grid.ColumnSpan="2" Grid.Row="3" Grid.Column="1" Margin="5" Text="{Binding Path=SyncOptions.DescriptionTemplate, Mode=TwoWay}"/>
+        <TextBlock Name="DescriptionTemplate" Grid.ColumnSpan="2" Grid.Row="3" Grid.Column="1" Margin="5" Text="{Binding Path=SyncOptions.DescriptionTemplate, Mode=TwoWay}" />
+
         <Label Content="Custom fields" Grid.Row="4" Grid.Column="0" Margin="5" />
         <DataGrid Name="CustomFields" Grid.ColumnSpan="2" Grid.Row="4" Grid.Column="1" Height="200" Margin="5" ItemsSource="{Binding Path=SyncOptions.CustomFields, Mode=TwoWay}" AutoGenerateColumns="False">
             <DataGrid.Columns>
@@ -56,7 +59,11 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <StackPanel Orientation="Horizontal" Grid.ColumnSpan="2" Grid.Row="5" Grid.Column="1" HorizontalAlignment="Right">
+        <CheckBox Content="Add background to steps" Name="BackgroundAsSteps" Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="2" Margin="5" IsChecked="{Binding Path=SyncOptions.BackgroundAsSteps, Mode=TwoWay}" />
+
+        <CheckBox Content="Remove from suite test cases not in the feature file" Name="RemoveCasesFromSuite" Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="2" Margin="5" IsChecked="{Binding Path=SyncOptions.RemoveCasesFromSuite, Mode=TwoWay}" />
+
+        <StackPanel Orientation="Horizontal" Grid.ColumnSpan="2" Grid.Row="7" Grid.Column="1" HorizontalAlignment="Right">
             <Button Name="OkButton" 
                     Content="Ok" 
                     Width="100" 
