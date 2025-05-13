@@ -26,7 +26,8 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="25*" />
             <ColumnDefinition Width="25*" />
-            <ColumnDefinition Width="55*" />
+            <ColumnDefinition Width="50*" />
+            <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -39,35 +40,137 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Label Content="Project" Grid.Row="0" Grid.Column="0" Margin="5"/>
-        <TextBox Name="ProjectName" Grid.ColumnSpan="2" Grid.Row="0" Grid.Column="1" Margin="5" Text="{Binding Path=SyncOptions.ProjectName, Mode=TwoWay}" />
-        <Label Content="Test plan" Grid.Row="1" Grid.Column="0" Margin="5"/>
-        <TextBox Name="TestPlanId" Grid.Row="1" Grid.Column="1" Margin="5" Text="{Binding Path=SyncOptions.TestPlanId, Mode=TwoWay}" IsEnabled="{Binding Path=SyncOptions.IsTestPlanIdEnabled, Mode=OneWay}" />
-        <TextBox Name="TestPlanName" Grid.Row="1" Grid.Column="2" Margin="0 5 5 5" Text="{Binding Path=SyncOptions.TestPlanName, Mode=TwoWay}"/>
-        <Label Content="Test suite" Grid.Row="2" Grid.Column="0" Margin="5"/>
-        <TextBox Name="TestSuiteId" Grid.Row="2" Grid.Column="1" Margin="5" Text="{Binding Path=SyncOptions.TestSuiteId, Mode=TwoWay}" IsEnabled="{Binding Path=SyncOptions.IsTestSuiteIdEnabled, Mode=OneWay}" />
-        <TextBox Name="TestSuiteName" Grid.Row="2" Grid.Column="2" Margin="0 5 5 5" Text="{Binding Path=SyncOptions.TestSuiteName, Mode=TwoWay}" />
+        <Label Content="Project" 
+               Grid.Row="0" 
+               Grid.Column="0" 
+               Margin="5"/>
+        <TextBox Name="ProjectName" 
+                 Grid.ColumnSpan="3" 
+                 Grid.Row="0" 
+                 Grid.Column="1" 
+                 Margin="5" 
+                 Text="{Binding Path=SyncOptions.ProjectName, Mode=TwoWay}" />
 
-        <Label Content="Description template" Grid.Row="3" Grid.Column="0" Margin="5"/>
-        <TextBlock Name="DescriptionTemplate" Grid.ColumnSpan="2" Grid.Row="3" Grid.Column="1" Margin="5" Text="{Binding Path=SyncOptions.DescriptionTemplate, Mode=TwoWay}" />
+        <Label Content="Test plan" 
+               Grid.Row="1" 
+               Grid.Column="0" 
+               Margin="5"/>
+        <TextBox Name="TestPlanId" 
+                 Grid.Row="1" 
+                 Grid.Column="1" 
+                 Margin="5" 
+                 Text="{Binding Path=SyncOptions.TestPlanId, Mode=TwoWay}" />
+        <TextBox Name="TestPlanName" 
+                 Grid.Row="1" 
+                 Grid.Column="2" 
+                 Margin="0 5 5 5" 
+                 Text="{Binding Path=SyncOptions.TestPlanName, Mode=TwoWay}"/>
 
-        <Label Content="Custom fields" Grid.Row="4" Grid.Column="0" Margin="5" />
-        <DataGrid Name="CustomFields" Grid.ColumnSpan="2" Grid.Row="4" Grid.Column="1" Height="200" Margin="5" ItemsSource="{Binding Path=SyncOptions.CustomFields, Mode=TwoWay}" AutoGenerateColumns="False">
+        <Button Name="RefreshTestPlan" 
+                Width="25"
+                Grid.Row="1" 
+                Grid.Column="3" 
+                Margin="0 5 5 5" 
+                ToolTip="Refresh test plan title"
+                IsEnabled="{Binding Path=SyncOptions.AreButtonsEnabled, Mode=OneWay}"
+                Command="{Binding SyncOptions.RefreshTestPlanCommand}"
+                >
+            <Button.Background>
+                <ImageBrush ImageSource="pack://application:,,,/GherkinSync;component/Resources/Refresh.png" Stretch="Uniform"/>
+            </Button.Background>
+        </Button>
+
+        <Label Content="Test suite" 
+               Grid.Row="2" 
+               Grid.Column="0" 
+               Margin="5"/>
+        <TextBox Name="TestSuiteId" 
+                 Grid.Row="2" 
+                 Grid.Column="1" 
+                 Margin="5" 
+                 Text="{Binding Path=SyncOptions.TestSuiteId, Mode=TwoWay}" />
+        <TextBox Name="TestSuiteName" 
+                 Grid.Row="2" 
+                 Grid.Column="2" 
+                 Margin="0 5 5 5" 
+                 Text="{Binding Path=SyncOptions.TestSuiteName, Mode=TwoWay}" />
+
+        <Button Name="RefreshTestSuite" 
+                Width="25"
+                Grid.Row="2" 
+                Grid.Column="3" 
+                Margin="0 5 5 5" 
+                ToolTip="Refresh test suite title"
+                IsEnabled="{Binding Path=SyncOptions.AreButtonsEnabled, Mode=OneWay}"
+                Command="{Binding SyncOptions.RefreshTestSuiteCommand}"
+                >
+            <Button.Background>
+                <ImageBrush ImageSource="pack://application:,,,/GherkinSync;component/Resources/Refresh.png" Stretch="Uniform"/>
+            </Button.Background>
+        </Button>
+
+        <Label Content="Description template" 
+               Grid.Row="3" 
+               Grid.Column="0" 
+               Margin="5"/>
+        <TextBox Name="DescriptionTemplate" 
+                 Grid.ColumnSpan="3" 
+                 Grid.Row="3" 
+                 Grid.Column="1" 
+                 Margin="5" 
+                 TextWrapping="Wrap"
+                 AcceptsReturn="True"
+                 VerticalScrollBarVisibility="Visible"
+                 Text="{Binding Path=SyncOptions.DescriptionTemplate, Mode=TwoWay}" />
+
+        <Label Content="Custom fields" 
+               Grid.Row="4" 
+               Grid.Column="0" 
+               Margin="5" />
+        <DataGrid Name="CustomFields"
+                  Grid.ColumnSpan="3" 
+                  Grid.Row="4" 
+                  Grid.Column="1" 
+                  Height="200" 
+                  Margin="5" 
+                  ItemsSource="{Binding Path=SyncOptions.CustomFields, Mode=TwoWay}" 
+                  AutoGenerateColumns="False">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Key" Width="200" Binding="{Binding FieldName}"/>
-                <DataGridTextColumn Header="Value" Width="*" Binding="{Binding DefaultValue}" />
+                <DataGridTextColumn Header="Key" 
+                                    Width="200" 
+                                    Binding="{Binding FieldName}"/>
+                <DataGridTextColumn Header="Value" 
+                                    Width="*" 
+                                    Binding="{Binding DefaultValue}" />
             </DataGrid.Columns>
         </DataGrid>
 
-        <CheckBox Content="Add background to steps" Name="BackgroundAsSteps" Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="2" Margin="5" IsChecked="{Binding Path=SyncOptions.BackgroundAsSteps, Mode=TwoWay}" />
+        <CheckBox Content="Add background to steps" 
+                  Name="BackgroundAsSteps" 
+                  Grid.Row="5" 
+                  Grid.Column="1" 
+                  Grid.ColumnSpan="3" 
+                  Margin="5" 
+                  IsChecked="{Binding Path=SyncOptions.BackgroundAsSteps, Mode=TwoWay}" />
 
-        <CheckBox Content="Remove from suite test cases not in the feature file" Name="RemoveCasesFromSuite" Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="2" Margin="5" IsChecked="{Binding Path=SyncOptions.RemoveCasesFromSuite, Mode=TwoWay}" />
+        <CheckBox Content="Remove from suite test cases not in the feature file"
+                  Name="RemoveCasesFromSuite" 
+                  Grid.Row="6" 
+                  Grid.Column="1" 
+                  Grid.ColumnSpan="3" 
+                  Margin="5" 
+                  IsChecked="{Binding Path=SyncOptions.RemoveCasesFromSuite, Mode=TwoWay}" />
 
-        <StackPanel Orientation="Horizontal" Grid.ColumnSpan="2" Grid.Row="7" Grid.Column="1" HorizontalAlignment="Right">
+        <StackPanel Orientation="Horizontal" 
+                    Grid.ColumnSpan="3"
+                    Grid.Row="7" 
+                    Grid.Column="1" 
+                    HorizontalAlignment="Right">
             <Button Name="OkButton" 
                     Content="Ok" 
                     Width="100" 
                     Margin="5" 
+                    IsEnabled="{Binding Path=SyncOptions.AreButtonsEnabled, Mode=OneWay}"
                     Command="{Binding SyncOptions.OkCommand}"
                     CommandParameter="{Binding ElementName=SyncOptionsDialogWindow, Mode=OneWay}"
                     />
@@ -75,6 +178,7 @@
                     Content="Cancel" 
                     Width="100" 
                     Margin="5" 
+                    IsEnabled="{Binding Path=SyncOptions.AreButtonsEnabled, Mode=OneWay}"
                     Command="{Binding SyncOptions.CancelCommand}"
                     CommandParameter="{Binding ElementName=SyncOptionsDialogWindow, Mode=OneWay}"
                     />

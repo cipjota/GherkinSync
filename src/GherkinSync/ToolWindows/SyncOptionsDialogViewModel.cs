@@ -18,6 +18,10 @@ namespace GherkinSync.ToolWindows
 
         public DelegateCommand LoadedCommand { get; }
 
+        public DelegateCommand RefreshTestPlanCommand { get; }
+
+        public DelegateCommand RefreshTestSuiteCommand { get; }
+
         #region Properties
         private string _projectName = string.Empty;
         public string ProjectName
@@ -145,9 +149,19 @@ namespace GherkinSync.ToolWindows
             }
         }
 
-        public bool IsTestPlanIdEnabled { get { return TestPlanId > 0; } }
-
-        public bool IsTestSuiteIdEnabled { get { return TestSuiteId > 0; } }
+        private bool _areButtonsEnabled = true;
+        public bool AreButtonsEnabled
+        {
+            get => _areButtonsEnabled;
+            set
+            {
+                if (_areButtonsEnabled != value)
+                {
+                    _areButtonsEnabled = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AreButtonsEnabled)));
+                }
+            }
+        }
 
         #endregion Properties
 
@@ -155,6 +169,8 @@ namespace GherkinSync.ToolWindows
         {
             OkCommand = new DelegateCommand(OnOkCommandExecute);
             CancelCommand = new DelegateCommand(OnCancelCommandExecute);
+            RefreshTestPlanCommand = new DelegateCommand(OnRefreshTestPlanExecute);
+            RefreshTestSuiteCommand = new DelegateCommand(OnRefreshTestSuiteExecute);
             LoadedCommand = new DelegateCommand(OnLoadedCommandExecute);
         }
 
@@ -162,6 +178,8 @@ namespace GherkinSync.ToolWindows
 
         private async void OnOkCommandExecute(object parameter)
         {
+            AreButtonsEnabled = false;
+
             try
             {
                 await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
@@ -169,6 +187,19 @@ namespace GherkinSync.ToolWindows
                 IVsThreadedWaitDialog4 twd = fac.CreateInstance();
 
                 twd.StartWaitDialog("GherkinSync", "Updating data...", "", null, "", 1, true, true);
+
+                if (TestPlanName.Length == 0)
+                {
+                    twd.UpdateProgress("", "Obtaining test plan", "Obtaining test plan", 1, 1, true, out _);
+                    await GetTestPlanInfoAsync();
+                }
+
+                if (TestSuiteName.Length == 0)
+                {
+                    twd.UpdateProgress("", "Obtaining test suite", "Obtaining test suite", 1, 1, true, out _);
+                    await GetTestSuiteInfoAsync();
+                }
+
                 twd.UpdateProgress("", "Creating or updating test plan", "Creating or updating test plan", 1, 2, true, out _);
                 await CreateOrUpdateTestPlanAsync();
                 twd.UpdateProgress("", "Creating or updating test suite", "Creating or updating test suite", 2, 2, true, out _);
@@ -190,13 +221,52 @@ namespace GherkinSync.ToolWindows
 
         private void OnCancelCommandExecute(object parameter)
         {
+            AreButtonsEnabled = false;
             Window wnd = parameter as Window;
             wnd.DialogResult = false;
             wnd.Close();
         }
 
+        private async void OnRefreshTestPlanExecute()
+        {
+            AreButtonsEnabled = false;
+
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            var fac = (IVsThreadedWaitDialogFactory)await VS.Services.GetThreadedWaitDialogAsync();
+            IVsThreadedWaitDialog4 twd = fac.CreateInstance();
+
+            twd.StartWaitDialog("GherkinSync", "Obtaining data...", "", null, "", 1, true, true);
+            twd.UpdateProgress("", "Obtaining test plan", "Obtaining test plan", 1, 1, true, out _);
+            await GetTestPlanInfoAsync();
+
+            twd.EndWaitDialog();
+            (twd as IDisposable).Dispose();
+
+            AreButtonsEnabled = true;
+        }
+
+        private async void OnRefreshTestSuiteExecute()
+        {
+            AreButtonsEnabled = false;
+
+            await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+            var fac = (IVsThreadedWaitDialogFactory)await VS.Services.GetThreadedWaitDialogAsync();
+            IVsThreadedWaitDialog4 twd = fac.CreateInstance();
+
+            twd.StartWaitDialog("GherkinSync", "Obtaining data...", "", null, "", 1, true, true);
+            twd.UpdateProgress("", "Obtaining test suite", "Obtaining test suite", 1, 1, true, out _);
+            await GetTestSuiteInfoAsync();
+
+            twd.EndWaitDialog();
+            (twd as IDisposable).Dispose();
+
+            AreButtonsEnabled = true;
+        }
+
         private async void OnLoadedCommandExecute()
         {
+            AreButtonsEnabled = false;
+
             await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
             var fac = (IVsThreadedWaitDialogFactory)await VS.Services.GetThreadedWaitDialogAsync();
             IVsThreadedWaitDialog4 twd = fac.CreateInstance();
@@ -209,6 +279,8 @@ namespace GherkinSync.ToolWindows
 
             twd.EndWaitDialog();
             (twd as IDisposable).Dispose();
+
+            AreButtonsEnabled = true;
         }
 
         private async Task GetTestPlanInfoAsync()
