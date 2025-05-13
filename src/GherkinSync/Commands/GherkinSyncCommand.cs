@@ -12,7 +12,9 @@ using Microsoft.VisualStudio.Services.WebApi.Patch;
 using Microsoft.VisualStudio.Services.WebApi.Patch.Json;
 using Microsoft.VisualStudio.Shell.Interop;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using WorkItem = Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models.WorkItem;
@@ -123,16 +125,58 @@ namespace GherkinSync
                     {
                         twd.UpdateProgress("", "Removing test cases from suite", "Removing test cases from suite", testCasesList.Count + 1, testCasesList.Count + 2, true, out _);
 
-                        var testCasesToRemove = string.Join(",", testCasesInSuite.Select(tc => tc.workItem.Id)
-                                           .Except(testCasesList.Select(tc => tc.TestCaseId))
-                                           .ToList());
+                        var testCasesToRemove = testCasesInSuite
+                            .Select(tc => tc.workItem.Id)
+                            .Except(testCasesList.Select(tc => tc.TestCaseId))
+                            .ToList();
 
-                        await testManagementClient.RemoveTestCasesListFromSuiteAsync(syncOptionsDialog.SyncOptions.ProjectName, syncOptionsDialog.SyncOptions.TestPlanId, syncOptionsDialog.SyncOptions.TestSuiteId, testCasesToRemove);
+                        if (testCasesToRemove.Any())
+                        {
+                            await testManagementClient.RemoveTestCasesListFromSuiteAsync(syncOptionsDialog.SyncOptions.ProjectName, syncOptionsDialog.SyncOptions.TestPlanId, syncOptionsDialog.SyncOptions.TestSuiteId, string.Join(",", testCasesToRemove));
+                        }
                     }
 
                     twd.UpdateProgress("", "Updating feature file", "Updating feature file", testCasesList.Count + 2, testCasesList.Count + 2, true, out _);
 
-                    // Update the feature files
+                    var featureFileLines = File.ReadAllLines(currentFilePath).ToList();
+
+                    var groupedTestCaseIds = testCasesList
+                        .Select(s => new { s.ReferenceTagLine, s.TestCaseFirstLine, s.TestCaseId, TestCaseTagLine = (s.ReferenceTagExists ? s.ReferenceTagLine : s.TestCaseFirstLine - 1) })
+                        .GroupBy(tc => tc.TestCaseTagLine)
+                        .Select(g => new { TestCaseTagLine = g.Key, TestCaseIds = string.Join(",", g.Select(tc => tc.TestCaseId.ToString())) })
+                        .ToList().OrderByDescending(o => o.TestCaseTagLine);
+
+                    foreach (var groupedTestCaseId in groupedTestCaseIds)
+                    {
+                        if (featureFileLines[groupedTestCaseId.TestCaseTagLine].Contains(GherkinSyncOptions.Instance.TestCaseReferenceIdTag))
+                        {
+                            var replacementLine = UpdateReferenceTagLine(featureFileLines[groupedTestCaseId.TestCaseTagLine], GherkinSyncOptions.Instance.TestCaseReferenceIdTag, groupedTestCaseId.TestCaseIds);
+                            featureFileLines.RemoveAt(groupedTestCaseId.TestCaseTagLine);
+                            featureFileLines.Insert(groupedTestCaseId.TestCaseTagLine, replacementLine);
+                        }
+                        else
+                        { featureFileLines.Insert(groupedTestCaseId.TestCaseTagLine, "@" + GherkinSyncOptions.Instance.TestCaseReferenceIdTag + "(" + groupedTestCaseId.TestCaseIds + ")"); }
+                    }
+
+                    if (testSuiteReferenceTag != null)
+                    {
+                        var replacementLine = UpdateReferenceTagLine(featureFileLines[testSuiteReferenceTag.Location.Line - 1], GherkinSyncOptions.Instance.TestSuiteReferenceIdTag, syncOptionsDialog.SyncOptions.TestSuiteId.ToString());
+                        featureFileLines.RemoveAt(testSuiteReferenceTag.Location.Line - 1);
+                        featureFileLines.Insert(testSuiteReferenceTag.Location.Line - 1, replacementLine);
+                    }
+                    else
+                    { featureFileLines.Insert(gherkinDocument.Feature.Location.Line - 1, "@" + GherkinSyncOptions.Instance.TestSuiteReferenceIdTag + "(" + syncOptionsDialog.SyncOptions.TestSuiteId + ")"); }
+
+                    if (testPlanReferenceTag != null)
+                    {
+                        var replacementLine = UpdateReferenceTagLine(featureFileLines[testPlanReferenceTag.Location.Line - 1], GherkinSyncOptions.Instance.TestPlanReferenceIdTag, syncOptionsDialog.SyncOptions.TestPlanId.ToString());
+                        featureFileLines.RemoveAt(testPlanReferenceTag.Location.Line - 1);
+                        featureFileLines.Insert(testPlanReferenceTag.Location.Line - 1, replacementLine);
+                    }
+                    else
+                    { featureFileLines.Insert(gherkinDocument.Feature.Location.Line - 1, "@" + GherkinSyncOptions.Instance.TestPlanReferenceIdTag + "(" + syncOptionsDialog.SyncOptions.TestPlanId + ")"); }
+
+                    File.WriteAllLines(currentFilePath, featureFileLines);
 
                     twd.EndWaitDialog();
                     (twd as IDisposable).Dispose();
@@ -144,12 +188,31 @@ namespace GherkinSync
                     GherkinSyncOptions.Instance.BackgroundAsSteps = syncOptionsDialog.SyncOptions.BackgroundAsSteps;
 
                     await GherkinSyncOptions.Instance.SaveAsync();
+
+                    await VS.MessageBox.ShowAsync("GherkinSync", "Synchronization complete.", Microsoft.VisualStudio.Shell.Interop.OLEMSGICON.OLEMSGICON_INFO, Microsoft.VisualStudio.Shell.Interop.OLEMSGBUTTON.OLEMSGBUTTON_OK);
                 }
                 else
                 {
                     await VS.MessageBox.ShowAsync("GherkinSync", "Synchronization cancelled.", Microsoft.VisualStudio.Shell.Interop.OLEMSGICON.OLEMSGICON_INFO, Microsoft.VisualStudio.Shell.Interop.OLEMSGBUTTON.OLEMSGBUTTON_OK);
                 }
             }
+        }
+
+        private string UpdateReferenceTagLine(string currentLine, string tagPattern, string newTagValue)
+        {
+            string pattern = $"{ParseRegexString("@" + tagPattern + "(")}[\\d,]*{ParseRegexString(")")}";
+            var returnString = Regex.Replace(currentLine, pattern, $"{"@" + tagPattern + "("}{newTagValue}{")"}");
+
+            return returnString;
+        }
+
+        private string ParseRegexString(string input)
+        {
+            input = input.Replace(@"\", @"\\").Replace("^", @"\^");
+            input = input.Replace("(", @"\(").Replace(")", @"\)");
+            input = input.Replace(@"$", @"\$");
+
+            return input;
         }
 
         public async Task<int> CreateOrUpdateTestCaseAsync(Models.TestCase testCase, SyncOptionsDialogViewModel syncOptions)
@@ -173,19 +236,23 @@ namespace GherkinSync
                     workItem = new WorkItem();
                 }
 
-                // Add or edit steps
+                workItem.Fields.AddOrUpdate("System.Title", testCase.TestCaseName, (key, value) => { return value; });
 
-                workItem.Fields.AddOrUpdate("Title", testCase.TestCaseName, (key, value) => { return value; });
+                string[] splitString = { Environment.NewLine };
 
-                workItem.Fields.AddOrUpdate("Description", syncOptions.DescriptionTemplate
+                workItem.Fields.AddOrUpdate("System.Description",
+                    string.Join("", syncOptions.DescriptionTemplate
                     .Replace("[FeatureName]", testCase.FeatureName)
                     .Replace("[FeatureDescription]", testCase.FeatureDescription)
                     .Replace("[TestCaseName]", testCase.TestCaseName)
                     .Replace("[TestCaseDescription]", testCase.TestCaseDescription)
                     .Replace("[RuleName]", testCase.RuleName)
                     .Replace("[RuleDescription]", testCase.RuleDescription)
-                    .Replace("[BackgroundSteps]", "<ul>" + string.Join(Environment.NewLine, testCase.BackgroundSteps.Select(s => "<li>" + s + "</li>")) + "</ul>"),
-                    (key, value) => { return value; });
+                    .Replace("[BackgroundSteps]", string.Join(Environment.NewLine, testCase.BackgroundSteps.Select(s => string.Join("", s))))
+                    .Split(splitString, StringSplitOptions.None).Select(r => "<div>" + r.Replace(" ", "&nbsp;") + "</div>"))
+                    , (key, value) => { return value; });
+
+                workItem.Fields.AddOrUpdate("Microsoft.VSTS.TCM.Steps", ConvertTestStepsToStepsXml(syncOptions.BackgroundAsSteps ? testCase.BackgroundSteps.Union(testCase.Steps).ToList() : testCase.Steps), (key, value) => { return value; });
 
                 foreach (var customFiled in syncOptions.CustomFields)
                 {
@@ -218,8 +285,42 @@ namespace GherkinSync
                 var msg = ex.Message;
             }
 
-
             return workItem.Id.Value;
+        }
+
+        private string ConvertTestStepsToStepsXml(List<string> testSteps)
+        {
+            var sb = new StringBuilder();
+            sb.Append("<steps id=\"0\" last=\"" + (testSteps.Count + 1) + "\">");
+
+            for (int i = 0; i < testSteps.Count; i++)
+            {
+                sb.Append($"<step id=\"{i + 2}\" type=\"ActionStep\">");
+                sb.Append($"<parameterizedString isformatted=\"true\">{EscapeStepHtml("<DIV><DIV><P>" + testSteps[i] + "<BR/></P></DIV></DIV>")}</parameterizedString>");
+                sb.Append($"<parameterizedString isformatted=\"true\">{EscapeStepHtml("<DIV><P><BR/></P></DIV>")}</parameterizedString>");
+                sb.Append("<description/></step>");
+            }
+
+            sb.Append("</steps>");
+            return sb.ToString();
+        }
+
+        private string EscapeStepHtml(string input)
+        {
+            // We are only modifying the html tags that mess with the API call. All other tags should remain as is.
+            return input
+
+                //Revert existing HTML
+                .Replace("&apos;", "'")
+                .Replace("&gt;", ">")
+                .Replace("&lt;", "<")
+                .Replace("&amp;", "&")
+
+                //Escape HTML
+                .Replace("&", "&amp;")
+                .Replace("<", "&lt;")
+                .Replace(">", "&gt;")
+                .Replace("'", "&apos;");
         }
     }
 }

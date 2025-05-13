@@ -25,6 +25,7 @@ namespace GherkinSync
                 if (testCaseReferenceTag != null)
                 {
                     testCaseReferenceExists = true;
+                    testCaseReferenceTagLine = testCaseReferenceTag.Location.Line - 1;
                     testCaseIds = Regex.Match(testCaseReferenceTag.Name, "\\((.*)\\)")
                         .Groups[1]
                         .Value
