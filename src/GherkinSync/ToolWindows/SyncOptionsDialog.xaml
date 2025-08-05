@@ -10,11 +10,15 @@
                         mc:Ignorable="d"
                         Title="GherkinSync: Synchronization options"
                         Width="800"
-                        Height="600"
-                        d:DesignHeight="600"
+                        MinHeight="600"
+                        d:DesignHeight="800"
                         d:DesignWidth="800" 
                         Name="SyncOptionsDialogWindow"
                         DataContext="{Binding Mode=OneWay, RelativeSource={RelativeSource Self}}">
+
+    <platform:DialogWindow.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </platform:DialogWindow.Resources>
 
     <b:Interaction.Triggers>
         <b:EventTrigger EventName="Loaded">
@@ -34,6 +38,8 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -161,9 +167,31 @@
                   Margin="5" 
                   IsChecked="{Binding Path=SyncOptions.RemoveCasesFromSuite, Mode=TwoWay}" />
 
+        <CheckBox Content="Associate test case automaton"
+                  Name="AssociateAutomation" 
+                  Grid.Row="7" 
+                  Grid.Column="1" 
+                  Grid.ColumnSpan="3" 
+                  Margin="5" 
+                  IsChecked="{Binding Path=SyncOptions.AssociateAutomation, Mode=TwoWay}" />
+
+        <Label Content="Automated Test Storage" 
+               Grid.Row="8" 
+               Grid.Column="0" 
+               Margin="5"
+               Visibility="{Binding Path=SyncOptions.AssociateAutomation, Converter={StaticResource BoolToVis}}"
+               />
+        <TextBox Name="AutomatedTestStorage" 
+                 Grid.ColumnSpan="3" 
+                 Grid.Row="8" 
+                 Grid.Column="1" 
+                 Margin="5" 
+                 Visibility="{Binding Path=SyncOptions.AssociateAutomation, Converter={StaticResource BoolToVis}}"
+                 Text="{Binding Path=SyncOptions.AutomatedTestStorage, Mode=TwoWay}" />
+
         <StackPanel Orientation="Horizontal" 
                     Grid.ColumnSpan="3"
-                    Grid.Row="7" 
+                    Grid.Row="9" 
                     Grid.Column="1" 
                     HorizontalAlignment="Right">
             <Button Name="OkButton" 
