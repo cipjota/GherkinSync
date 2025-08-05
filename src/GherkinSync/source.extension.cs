@@ -10,11 +10,11 @@ namespace GherkinSync
     {
         public const string Id = "GherkinSync.cf821808-8c80-44bf-b6c3-b34bd94ec5f8";
         public const string Name = "GherkinSync";
-        public const string Description = @"Empty VSIX Project.";
+        public const string Description = @"A tool to synchronize Gherkin Test Scenarios with Azure DevOps test cases.";
         public const string Language = "en-US";
-        public const string Version = "1.0";
+        public const string Version = "1.1.0";
         public const string Author = "Cipriano Oliveira";
-        public const string Tags = "";
-        public const bool IsPreview = false;
+        public const string Tags = "Gherkin, Test Case, Sync";
+        public const bool IsPreview = true;
     }
 }

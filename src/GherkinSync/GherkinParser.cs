@@ -1,6 +1,9 @@
-﻿using Gherkin.Ast;
+﻿using EnvDTE;
+using EnvDTE80;
+using Gherkin.Ast;
 using GherkinSync.Models;
 using GherkinSync.Options;
+using Microsoft.VisualStudio.Services.Common;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,7 +13,33 @@ namespace GherkinSync
 {
     internal static class GherkinParser
     {
-        internal static List<TestCase> ConvertToTestCases(IEnumerable<Scenario> scenarios, List<string> backgroundSteps, string featureName, string featureDescription, string ruleName = "", string ruleDescription = "")
+        private static Dictionary<string, string> availableMethods = [];
+
+        internal static void AvailableMethods(Window codeBehindFile)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+#pragma warning disable VSTHRD010 // Invoke single-threaded types on Main thread
+
+            availableMethods =
+                    codeBehindFile.ProjectItem.FileCodeModel.CodeElements
+                        .OfType<CodeNamespace>() // Filter namespaces
+                        .SelectMany(nsp => nsp.Children.OfType<CodeClass>()) // Filter classes in namespace
+                        .SelectMany(c => c.Children.OfType<CodeFunction>()) // Filter methods in class
+                        .SelectMany(cf => cf.Attributes
+                            .OfType<CodeAttribute>()
+                            .Where(attr => attr.Name.EndsWith("DescriptionAttribute")) // Match DescriptionAttribute
+                            .SelectMany(attr => attr.Children
+                                .OfType<CodeAttributeArgument>()
+                                .Select(arg => new { arg.Value, MethodFullName = cf.FullName })
+                            )
+                        )
+                        .ToDictionary(x => x.Value.Replace("\"", ""), x => x.MethodFullName);
+
+#pragma warning restore VSTHRD010 // Invoke single-threaded types on Main thread
+        }
+
+        internal static List<TestCase> ConvertToTestCases(IEnumerable<Scenario> scenarios, List<string> backgroundSteps, string featureName, string featureDescription, bool associateAutomation, string automatedTestStorage = "", string ruleName = "", string ruleDescription = "")
         {
             var testCasesList = new List<TestCase>();
             foreach (var scenario in scenarios)
@@ -34,8 +63,29 @@ namespace GherkinSync
                         .ToArray();
                 }
 
+                var automatedTestName = associateAutomation ? availableMethods.GetValueOrDefault(scenarioName, string.Empty) : string.Empty;
+
                 if (scenario.Examples.Any())
                 {
+                    if (!string.IsNullOrEmpty(automatedTestName))
+                    {
+                        var quotedRegex = new Regex("\"([^\"]*)\"");
+                        var angleBracketRegex = new Regex("<[^>]+>");
+
+                        var cleanMethodAttributes = scenario.Steps
+                            .SelectMany(step => quotedRegex.Matches(step.Text).Cast<Match>())
+                            .Select(match => match.Groups[1].Value) // Get quoted content
+                            .SelectMany(quoted => angleBracketRegex.Matches(quoted).Cast<Match>()) // Extract <...> from quoted
+                            .Select(m => m.Value)
+                            .Distinct()
+                            .ToList();
+
+                        if (cleanMethodAttributes.Count > 0)
+                        {
+                            automatedTestName += "(\"" + string.Join("\",\"", cleanMethodAttributes) + "\")";
+                        }
+                    }
+
                     var scenarioExample = scenario.Examples.ToArray()[0];
                     var scenarioRows = scenarioExample.TableBody.ToArray();
                     for (int i = 0; i < scenarioRows.Length; i++)
@@ -56,7 +106,12 @@ namespace GherkinSync
                             Steps = StepsToList(scenario.Steps).Select(s =>
                                 DictionaryFromExample(scenarioExample.TableHeader, scenarioRows[i])
                                 .Aggregate(s, (current, kvp) => current.Replace(kvp.Key, kvp.Value))
-                            ).ToList()
+                            ).ToList(),
+                            AutomatedTestName = DictionaryFromExample(scenarioExample.TableHeader, scenarioRows[i])
+                            .Aggregate(automatedTestName, (current, kvp) => current.Replace(kvp.Key, kvp.Value)),
+                            AutomatedTestStorage = associateAutomation ? automatedTestStorage : string.Empty,
+                            AutomatedTestType = string.Empty,
+                            AutomationStatus = associateAutomation,
                         });
                     }
                 }
@@ -75,7 +130,11 @@ namespace GherkinSync
                         TestCaseDescription = scenarioDescription,
                         TestCaseName = scenarioName,
                         TestCaseId = testCaseIds.Length > 0 ? testCaseIds[0] : -1,
-                        Steps = StepsToList(scenario.Steps)
+                        Steps = StepsToList(scenario.Steps),
+                        AutomatedTestName = automatedTestName,
+                        AutomatedTestStorage = associateAutomation ? automatedTestStorage : string.Empty,
+                        AutomatedTestType = string.Empty,
+                        AutomationStatus = associateAutomation,
                     });
                 }
             }
@@ -124,7 +183,7 @@ namespace GherkinSync
                 }
             }
 
-            StringBuilder tableBuilder = new StringBuilder();
+            StringBuilder tableBuilder = new();
             tableBuilder.AppendLine(Environment.NewLine);
 
             // Build the header

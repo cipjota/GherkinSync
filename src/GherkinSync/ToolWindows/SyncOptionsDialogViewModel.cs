@@ -163,6 +163,34 @@ namespace GherkinSync.ToolWindows
             }
         }
 
+        private bool _associateAutomation = true;
+        public bool AssociateAutomation
+        {
+            get => _associateAutomation;
+            set
+            {
+                if (_associateAutomation != value)
+                {
+                    _associateAutomation = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AssociateAutomation)));
+                }
+            }
+        }
+
+        private string _automatedTestStorage = string.Empty;
+        public string AutomatedTestStorage
+        {
+            get => _automatedTestStorage;
+            set
+            {
+                if (_automatedTestStorage != value)
+                {
+                    _automatedTestStorage = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AutomatedTestStorage)));
+                }
+            }
+        }
+
         #endregion Properties
 
         public SyncOptionsDialogViewModel()

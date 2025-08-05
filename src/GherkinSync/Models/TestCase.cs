@@ -24,8 +24,16 @@ namespace GherkinSync.Models
 
         public string TestCaseDescription { get; set; } = string.Empty;
 
-        public List<string> BackgroundSteps { get; set; } = new List<string>();
+        public bool AutomationStatus { get; set; } = false;
 
-        public List<string> Steps { get; set; } = new List<string>();
+        public string AutomatedTestName { get; set; } = string.Empty;
+
+        public string AutomatedTestStorage { get; set; } = string.Empty;
+
+        public string AutomatedTestType { get; set; } = string.Empty;
+
+        public List<string> BackgroundSteps { get; set; } = [];
+
+        public List<string> Steps { get; set; } = [];
     }
 }

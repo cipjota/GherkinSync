@@ -41,6 +41,12 @@ namespace GherkinSync.Options
             "Adds the background steps to the steps of the test case.")]
         public bool BackgroundAsSteps { get; set; } = false;
 
+        [Category("Test Cases")]
+        [DisplayName("Associate automation")]
+        [Description(
+            "Links the test case with test automation")]
+        public bool AssociateAutomation { get; set; } = false;
+
         [Category("Test Plan Management")]
         [DisplayName("Test plan reference id tag prefix")]
         [Description(
