@@ -42,13 +42,21 @@ namespace GherkinSync
                     syncOptionsDialog.SyncOptions.CustomFields = GherkinSyncOptions.Instance.CustomFields;
                     syncOptionsDialog.SyncOptions.RemoveCasesFromSuite = GherkinSyncOptions.Instance.RemoveTestCasesFromSuite;
                     syncOptionsDialog.SyncOptions.BackgroundAsSteps = GherkinSyncOptions.Instance.BackgroundAsSteps;
-                    syncOptionsDialog.SyncOptions.AssociateAutomation = GherkinSyncOptions.Instance.AssociateAutomation;
 
-                    var codeBehindFile = dte.ItemOperations.OpenFile(currentFilePath + ".cs");
-                    codeBehindFile.Visible = false;
-                    GherkinParser.AvailableMethods(codeBehindFile);
-                    syncOptionsDialog.SyncOptions.AutomatedTestStorage = codeBehindFile.Project.Properties.Cast<Property>().FirstOrDefault(x => x.Name == "AssemblyName").Value + ".dll";
-                    codeBehindFile.Close();
+                    if (File.Exists(currentFilePath + ".cs"))
+                    {
+                        var codeBehindFile = dte.ItemOperations.OpenFile(currentFilePath + ".cs");
+                        codeBehindFile.Visible = false;
+                        GherkinParser.AvailableMethods(codeBehindFile);
+                        syncOptionsDialog.SyncOptions.AutomatedTestStorage = codeBehindFile.Project.Properties.Cast<Property>().FirstOrDefault(x => x.Name == "AssemblyName").Value + ".dll";
+                        codeBehindFile.Close();
+                    }
+                    else
+                    {
+                        syncOptionsDialog.SyncOptions.AllowAutomatedTests = false;
+                    }
+
+                    syncOptionsDialog.SyncOptions.AssociateAutomation = GherkinSyncOptions.Instance.AssociateAutomation && syncOptionsDialog.SyncOptions.AllowAutomatedTests;
 
                     var parser = new Parser();
                     var gherkinDocument = parser.Parse(currentFilePath);

@@ -166,7 +166,7 @@ namespace GherkinSync.ToolWindows
         private bool _associateAutomation = true;
         public bool AssociateAutomation
         {
-            get => _associateAutomation;
+            get => _associateAutomation && AllowAutomatedTests;
             set
             {
                 if (_associateAutomation != value)
@@ -187,6 +187,20 @@ namespace GherkinSync.ToolWindows
                 {
                     _automatedTestStorage = value;
                     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AutomatedTestStorage)));
+                }
+            }
+        }
+
+        private bool _allowAutomatedTests = true;
+        public bool AllowAutomatedTests
+        {
+            get => _allowAutomatedTests;
+            set
+            {
+                if (_allowAutomatedTests != value)
+                {
+                    _allowAutomatedTests = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AllowAutomatedTests)));
                 }
             }
         }
