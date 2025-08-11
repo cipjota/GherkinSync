@@ -18,9 +18,16 @@ namespace GherkinSync
     {
         protected override async Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
         {
-            GherkinSyncOptions.Saved += OnSettingsSaved;
+            try
+            {
+                GherkinSyncOptions.Saved += OnSettingsSaved;
 
-            await this.RegisterCommandsAsync();
+                await this.RegisterCommandsAsync();
+            }
+            catch (Exception ex)
+            {
+                ActivityLog.TryLogError(ex.Source, ex.Message);
+            }
         }
 
         private void OnSettingsSaved(GherkinSyncOptions obj)
