@@ -142,13 +142,19 @@ namespace GherkinSync
             return testCasesList;
         }
 
+        private static string FormatStepArgument(object? argument)
+        {
+            return argument switch
+            {
+                DataTable dataTable => ConvertGherkinDataTableToAsciiTable(dataTable),
+                DocString docString => Environment.NewLine + Environment.NewLine + docString.Content,
+                _ => string.Empty
+            };
+        }
+
         internal static List<string> StepsToList(IEnumerable<Step> steps)
         {
-            return steps.Select(step =>
-                step.Keyword +
-                step.Text +
-                ConvertGherkinDataTableToAsciiTable((DataTable)step.Argument)
-            ).ToList();
+            return steps.Select(step => step.Keyword + step.Text + FormatStepArgument(step.Argument)).ToList();
         }
 
         internal static Dictionary<string, string> DictionaryFromExample(TableRow tableHeader, TableRow tableRow)
