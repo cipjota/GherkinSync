@@ -209,7 +209,7 @@ namespace GherkinSync
 
                         await GherkinSyncOptions.Instance.SaveAsync();
 
-                        await VS.MessageBox.ShowAsync("GherkinSync", "Synchronization complete.", Microsoft.VisualStudio.Shell.Interop.OLEMSGICON.OLEMSGICON_INFO, Microsoft.VisualStudio.Shell.Interop.OLEMSGBUTTON.OLEMSGBUTTON_OK);
+                        await VS.MessageBox.ShowAsync("GherkinSync", "Synchronization complete.", OLEMSGICON.OLEMSGICON_INFO, OLEMSGBUTTON.OLEMSGBUTTON_OK);
                     }
                     else
                     {
@@ -298,6 +298,11 @@ namespace GherkinSync
                 workItem.Fields.AddOrUpdate("Microsoft.VSTS.TCM.AutomatedTestType", testCase.AutomatedTestType, (key, value) => value);
                 workItem.Fields.AddOrUpdate("Microsoft.VSTS.TCM.AutomatedTestId", automatedTestId, (key, value) => value);
 
+                if (workItem.Fields.ContainsKey("Microsoft.VSTS.TCM.AutomationStatus"))
+                {
+                    workItem.Fields.Remove("Microsoft.VSTS.TCM.AutomationStatus");
+                }
+
                 var patchDocument = new JsonPatchDocument();
 
                 foreach (var key in workItem.Fields.Keys)
@@ -360,17 +365,6 @@ namespace GherkinSync
                 .Replace("<", "&lt;")
                 .Replace(">", "&gt;")
                 .Replace("'", "&apos;");
-        }
-
-        private string ConvertToPascalCase(string input)
-        {
-            if (string.IsNullOrWhiteSpace(input)) return "";
-
-            var words = Regex.Matches(input, @"\w+")
-                             .Cast<Match>()
-                             .Select(m => char.ToUpper(m.Value[0]) + m.Value.Substring(1));
-
-            return string.Join("", words);
         }
     }
 }
