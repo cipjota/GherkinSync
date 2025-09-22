@@ -2,7 +2,7 @@
 
 namespace GherkinSync.Models
 {
-    internal class TestCase
+    public class TestCase
     {
         public int TestCaseId { get; set; }
 

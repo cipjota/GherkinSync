@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="GherkinSync.cf821808-8c80-44bf-b6c3-b34bd94ec5f8" Version="1.1.4" Language="en-US" Publisher="Cipriano Oliveira" />
+        <Identity Id="GherkinSync.cf821808-8c80-44bf-b6c3-b34bd94ec5f8" Version="1.2.1" Language="en-US" Publisher="Cipriano Oliveira" />
         <DisplayName>GherkinSync</DisplayName>
         <Description xml:space="preserve">A tool to synchronize Gherkin Test Scenarios with Azure DevOps test cases.</Description>
         <License>License.txt</License>
