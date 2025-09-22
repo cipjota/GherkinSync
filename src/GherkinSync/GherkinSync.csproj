@@ -65,7 +65,10 @@
     <UseWinFormsOutOfProcDesigner>True</UseWinFormsOutOfProcDesigner>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="GherkinParser.cs" />
+    <Compile Include="Core\AzureDevOps\AzureDevOpsFields.cs" />
+    <Compile Include="Core\AzureDevOps\AzureDevOpsService.cs" />
+    <Compile Include="Core\Gherkin\FeatureFileUpdater.cs" />
+    <Compile Include="Core\Gherkin\GherkinParser.cs" />
     <Compile Include="Models\CustomField.cs" />
     <Compile Include="Models\TestCase.cs" />
     <Compile Include="Options\GherkinSyncOptions.cs" />
