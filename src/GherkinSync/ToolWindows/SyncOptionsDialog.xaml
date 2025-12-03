@@ -44,6 +44,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <Label Content="Project" 
@@ -167,7 +168,7 @@
                   Margin="5" 
                   IsChecked="{Binding Path=SyncOptions.RemoveCasesFromSuite, Mode=TwoWay}" />
 
-        <CheckBox Content="Associate test case automaton"
+        <CheckBox Content="Associate test case automation"
                   Name="AssociateAutomation" 
                   Grid.Row="7" 
                   Grid.Column="1" 
@@ -175,15 +176,24 @@
                   Margin="5" 
                   IsChecked="{Binding Path=SyncOptions.AssociateAutomation, Mode=TwoWay}" />
 
+        <CheckBox Content="Add pickle index"
+                  Name="AddPickleIndex" 
+                  Grid.Row="8" 
+                  Grid.Column="1" 
+                  Grid.ColumnSpan="3" 
+                  Margin="5" 
+                  IsChecked="{Binding Path=SyncOptions.AddPickleIndex, Mode=TwoWay}" />
+
         <Label Content="Automated Test Storage" 
-               Grid.Row="8" 
+               Grid.Row="9" 
                Grid.Column="0" 
                Margin="5"
                Visibility="{Binding Path=SyncOptions.AssociateAutomation, Converter={StaticResource BoolToVis}}"
                />
+        
         <TextBox Name="AutomatedTestStorage" 
                  Grid.ColumnSpan="3" 
-                 Grid.Row="8" 
+                 Grid.Row="9" 
                  Grid.Column="1" 
                  Margin="5" 
                  Visibility="{Binding Path=SyncOptions.AssociateAutomation, Converter={StaticResource BoolToVis}}"
@@ -191,7 +201,7 @@
 
         <StackPanel Orientation="Horizontal" 
                     Grid.ColumnSpan="3"
-                    Grid.Row="9" 
+                    Grid.Row="10" 
                     Grid.Column="1" 
                     HorizontalAlignment="Right">
             <Button Name="OkButton" 

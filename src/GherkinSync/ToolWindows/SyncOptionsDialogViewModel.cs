@@ -205,6 +205,20 @@ namespace GherkinSync.ToolWindows
             }
         }
 
+        private bool _addPickleIndex = false;
+        public bool AddPickleIndex
+        {
+            get => _addPickleIndex;
+            set
+            {
+                if (_addPickleIndex != value)
+                {
+                    _addPickleIndex = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AddPickleIndex)));
+                }
+            }
+        }
+
         #endregion Properties
 
         public SyncOptionsDialogViewModel()
