@@ -47,6 +47,12 @@ namespace GherkinSync.Options
             "Links the test case with test automation")]
         public bool AssociateAutomation { get; set; } = false;
 
+        [Category("Test Cases")]
+        [DisplayName("Add pickle index parameter")]
+        [Description(
+            "Adds a parameter with pickle index to the automation method. Check https://github.com/reqnroll/Reqnroll/issues/927 for more info.")]
+        public bool AddPickleIndex { get; set; } = true;
+
         [Category("Test Plan Management")]
         [DisplayName("Test plan reference id tag prefix")]
         [Description(

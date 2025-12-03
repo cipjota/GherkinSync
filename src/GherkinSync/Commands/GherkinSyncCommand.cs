@@ -51,8 +51,10 @@ namespace GherkinSync
                     : [];
 
                 var scenarios = feature.Children.OfType<Scenario>();
-                var testCases = GherkinParser.ConvertToTestCases(scenarios, backgroundSteps, feature.Name,
-                    feature.Description, syncOptionsDialog.SyncOptions.AssociateAutomation,
+                var testCases = GherkinParser.ConvertToTestCases(scenarios, backgroundSteps, 
+                    feature.Name, feature.Description, 
+                    syncOptionsDialog.SyncOptions.AssociateAutomation,
+                    syncOptionsDialog.SyncOptions.AddPickleIndex,
                     syncOptionsDialog.SyncOptions.AutomatedTestStorage);
 
                 foreach (var rule in feature.Children.OfType<Rule>())
@@ -67,6 +69,7 @@ namespace GherkinSync
                     testCases.AddRange(GherkinParser.ConvertToTestCases(ruleScenarios, ruleBgSteps,
                         feature.Name, feature.Description,
                         syncOptionsDialog.SyncOptions.AssociateAutomation,
+                        syncOptionsDialog.SyncOptions.AddPickleIndex,
                         syncOptionsDialog.SyncOptions.AutomatedTestStorage,
                         rule.Name, rule.Description));
                 }
@@ -138,6 +141,8 @@ namespace GherkinSync
 
             dialog.SyncOptions.AssociateAutomation =
                 GherkinSyncOptions.Instance.AssociateAutomation && dialog.SyncOptions.AllowAutomatedTests;
+
+            dialog.SyncOptions.AddPickleIndex = GherkinSyncOptions.Instance.AddPickleIndex;
         }
 
         private void ExtractPlanAndSuiteIds(SyncOptionsDialog dialog, GherkinDocument doc)
@@ -167,6 +172,7 @@ namespace GherkinSync
             GherkinSyncOptions.Instance.RemoveTestCasesFromSuite = dialog.SyncOptions.RemoveCasesFromSuite;
             GherkinSyncOptions.Instance.BackgroundAsSteps = dialog.SyncOptions.BackgroundAsSteps;
             GherkinSyncOptions.Instance.AssociateAutomation = dialog.SyncOptions.AssociateAutomation;
+            GherkinSyncOptions.Instance.AddPickleIndex = dialog.SyncOptions.AddPickleIndex;
             await GherkinSyncOptions.Instance.SaveAsync();
         }
     }

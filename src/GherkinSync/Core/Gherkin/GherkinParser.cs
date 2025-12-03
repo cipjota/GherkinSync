@@ -5,6 +5,7 @@ using GherkinSync.Models;
 using GherkinSync.Options;
 using Microsoft.VisualStudio.Services.Common;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -39,7 +40,7 @@ namespace GherkinSync
 #pragma warning restore VSTHRD010 // Invoke single-threaded types on Main thread
         }
 
-        internal static List<TestCase> ConvertToTestCases(IEnumerable<Scenario> scenarios, List<string> backgroundSteps, string featureName, string featureDescription, bool associateAutomation, string automatedTestStorage = "", string ruleName = "", string ruleDescription = "")
+        internal static List<TestCase> ConvertToTestCases(IEnumerable<Scenario> scenarios, List<string> backgroundSteps, string featureName, string featureDescription, bool associateAutomation, bool addPickleIndex, string automatedTestStorage = "", string ruleName = "", string ruleDescription = "")
         {
             var testCasesList = new List<TestCase>();
             foreach (var scenario in scenarios)
@@ -80,6 +81,11 @@ namespace GherkinSync
                             .Distinct()
                             .ToList();
 
+                        if (associateAutomation && addPickleIndex)
+                        {
+                            cleanMethodAttributes.Add("<PickleIndex>");
+                        }
+
                         if (cleanMethodAttributes.Count > 0)
                         {
                             automatedTestName += "(\"" + string.Join("\",\"", cleanMethodAttributes) + "\")";
@@ -108,7 +114,8 @@ namespace GherkinSync
                                 .Aggregate(s, (current, kvp) => current.Replace(kvp.Key, kvp.Value))
                             ).ToList(),
                             AutomatedTestName = DictionaryFromExample(scenarioExample.TableHeader, scenarioRows[i])
-                            .Aggregate(automatedTestName, (current, kvp) => current.Replace(kvp.Key, kvp.Value)),
+                            .Aggregate(automatedTestName, (current, kvp) => current.Replace(kvp.Key, kvp.Value))
+                            .Replace("<PickleIndex>", (i + 1).ToString(CultureInfo.InvariantCulture)),
                             AutomatedTestStorage = associateAutomation ? automatedTestStorage : string.Empty,
                             AutomatedTestType = string.Empty,
                             AutomationStatus = associateAutomation,
