@@ -56,12 +56,11 @@ namespace GherkinSync
                 {
                     testCaseReferenceExists = true;
                     testCaseReferenceTagLine = testCaseReferenceTag.Location.Line - 1;
-                    testCaseIds = Regex.Match(testCaseReferenceTag.Name, "\\((.*)\\)")
+                    testCaseIds = [.. Regex.Match(testCaseReferenceTag.Name, "\\((.*)\\)")
                         .Groups[1]
                         .Value
                         .Split(',')
-                        .Select(s => int.Parse(s))
-                        .ToArray();
+                        .Select(s => int.Parse(s))];
                 }
 
                 var automatedTestName = associateAutomation ? availableMethods.GetValueOrDefault(scenarioName, string.Empty) : string.Empty;
@@ -81,13 +80,13 @@ namespace GherkinSync
                             .Distinct()
                             .ToList();
 
-                        if (associateAutomation && addPickleIndex)
-                        {
-                            cleanMethodAttributes.Add("<PickleIndex>");
-                        }
-
                         if (cleanMethodAttributes.Count > 0)
                         {
+                            if (associateAutomation && addPickleIndex)
+                            {
+                                cleanMethodAttributes.Add("<PickleIndex>");
+                            }
+
                             automatedTestName += "(\"" + string.Join("\",\"", cleanMethodAttributes) + "\")";
                         }
                     }
@@ -109,13 +108,15 @@ namespace GherkinSync
                             TestCaseDescription = scenarioDescription,
                             TestCaseName = scenarioName,
                             TestCaseId = testCaseIds.Length > i ? testCaseIds[i] : -1,
-                            Steps = StepsToList(scenario.Steps).Select(s =>
+                            Steps = [.. StepsToList(scenario.Steps).Select(s =>
                                 DictionaryFromExample(scenarioExample.TableHeader, scenarioRows[i])
                                 .Aggregate(s, (current, kvp) => current.Replace(kvp.Key, kvp.Value))
-                            ).ToList(),
+                            )],
                             AutomatedTestName = DictionaryFromExample(scenarioExample.TableHeader, scenarioRows[i])
                             .Aggregate(automatedTestName, (current, kvp) => current.Replace(kvp.Key, kvp.Value))
-                            .Replace("<PickleIndex>", (i + 1).ToString(CultureInfo.InvariantCulture)),
+                            // Need to verify why the tests are still not being found when using PickleIndex with a value other than null.
+                            //.Replace("<PickleIndex>", (i + 1).ToString(CultureInfo.InvariantCulture)),
+                            .Replace("\"<PickleIndex>\"", "null"),
                             AutomatedTestStorage = associateAutomation ? automatedTestStorage : string.Empty,
                             AutomatedTestType = string.Empty,
                             AutomationStatus = associateAutomation,
